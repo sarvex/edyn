@@ -1,16 +1,16 @@
 #ifndef EDYN_PARALLEL_ISLAND_COORDINATOR_HPP
 #define EDYN_PARALLEL_ISLAND_COORDINATOR_HPP
 
-#include <vector>
+#include "edyn/comp/island.hpp"
+#include "edyn/math/scalar.hpp"
+#include "edyn/parallel/island_delta.hpp"
+#include "edyn/parallel/island_delta_builder.hpp"
+#include "edyn/parallel/island_worker_context.hpp"
+#include "edyn/parallel/message.hpp"
+#include <entt/entity/fwd.hpp>
 #include <memory>
 #include <unordered_map>
-#include <entt/entity/fwd.hpp>
-#include "edyn/math/scalar.hpp"
-#include "edyn/comp/island.hpp"
-#include "edyn/parallel/island_delta.hpp"
-#include "edyn/parallel/island_worker_context.hpp"
-#include "edyn/parallel/island_delta_builder.hpp"
-#include "edyn/parallel/message.hpp"
+#include <vector>
 
 namespace edyn {
 
@@ -25,18 +25,14 @@ class island_coordinator final {
 
     void init_new_nodes_and_edges();
     void init_new_non_procedural_node(entt::entity);
-    entt::entity create_island(double timestamp, bool sleeping,
-                               const std::vector<entt::entity> &nodes,
+    entt::entity create_island(double timestamp, bool sleeping, const std::vector<entt::entity> &nodes,
                                const std::vector<entt::entity> &edges);
-    void insert_to_island(island_worker_context &ctx,
-                          const std::vector<entt::entity> &nodes,
+    void insert_to_island(island_worker_context &ctx, const std::vector<entt::entity> &nodes,
                           const std::vector<entt::entity> &edges);
-    void insert_to_island(entt::entity island_entity,
-                          const std::vector<entt::entity> &nodes,
+    void insert_to_island(entt::entity island_entity, const std::vector<entt::entity> &nodes,
                           const std::vector<entt::entity> &edges);
     entt::entity merge_islands(const std::vector<entt::entity> &island_entities,
-                               const std::vector<entt::entity> &new_nodes,
-                               const std::vector<entt::entity> &new_edges);
+                               const std::vector<entt::entity> &new_nodes, const std::vector<entt::entity> &new_edges);
     void split_islands();
     void split_island(entt::entity);
     void wake_up_island(entt::entity);
@@ -66,8 +62,7 @@ public:
     void set_paused(bool);
     void step_simulation();
 
-    template<typename... Component>
-    void refresh(entt::entity entity);
+    template <typename... Component> void refresh(entt::entity entity);
 
     void set_center_of_mass(entt::entity entity, const vector3 &com);
 
@@ -87,12 +82,11 @@ private:
     std::vector<entt::entity> m_new_graph_edges;
     std::vector<entt::entity> m_islands_to_split;
 
-    bool m_importing_delta {false};
+    bool m_importing_delta{false};
     double m_timestamp;
 };
 
-template<typename... Component>
-void island_coordinator::refresh(entt::entity entity) {
+template <typename... Component> void island_coordinator::refresh(entt::entity entity) {
     static_assert(sizeof...(Component) > 0);
 
     if (m_registry->has<island_resident>(entity)) {
@@ -108,6 +102,6 @@ void island_coordinator::refresh(entt::entity entity) {
     }
 }
 
-}
+} // namespace edyn
 
 #endif // EDYN_PARALLEL_ISLAND_COORDINATOR_HPP
