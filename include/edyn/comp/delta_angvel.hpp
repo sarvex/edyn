@@ -1,16 +1,11 @@
 #ifndef EDYN_COMP_DELTA_ANGVEL_HPP
 #define EDYN_COMP_DELTA_ANGVEL_HPP
 
-#include "edyn/math/vector3.hpp"
+#include "edyn/comp/scalar_comp.hpp"
 
 namespace edyn {
 
-struct delta_angvel : public vector3 {
-    delta_angvel& operator=(const vector3& v) {
-        vector3::operator=(v);
-        return *this;
-    }
-};
+struct delta_angvel : public scalar_comp {};
 
 }
 

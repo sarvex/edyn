@@ -1,16 +1,16 @@
 #ifndef EDYN_COMP_VELOCITY_HPP
 #define EDYN_COMP_VELOCITY_HPP
 
-#include "edyn/math/vector3.hpp"
+#include "edyn/math/vector2.hpp"
 
 namespace edyn {
 
 /**
  * @brief Linear velocity component.
  */
-struct linvel : public vector3 {
-    linvel & operator=(const vector3 &v) {
-        vector3::operator=(v);
+struct linvel : public vector2 {
+    linvel & operator=(const vector2 &v) {
+        vector2::operator=(v);
         return *this;
     }
 };

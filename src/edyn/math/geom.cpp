@@ -636,14 +636,12 @@ matrix3x3 make_tangent_basis(const vector3 &n) {
     return matrix3x3_columns(t, n, u);
 }
 
-bool intersect_aabb(const vector3 &min0, const vector3 &max0,
-                    const vector3 &min1, const vector3 &max1) {
+bool intersect_aabb(const vector2 &min0, const vector2 &max0,
+                    const vector2 &min1, const vector2 &max1) {
     return (min0.x <= max1.x) &&
 		   (max0.x >= min1.x) &&
 		   (min0.y <= max1.y) &&
-		   (max0.y >= min1.y) &&
-		   (min0.z <= max1.z) &&
-		   (max0.z >= min1.z);
+		   (max0.y >= min1.y);
 }
 
 vector3 support_point_circle(const vector3 &pos, const quaternion &orn,

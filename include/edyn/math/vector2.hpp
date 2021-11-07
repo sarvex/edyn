@@ -74,7 +74,7 @@ inline vector2 operator*(const vector2 &v, const vector2 &w) {
 }
 
 // Multiply vector by scalar.
-inline vector2 operator*(const vector2& v, scalar s) {
+inline constexpr vector2 operator*(const vector2& v, scalar s) {
     return {v.x * s, v.y * s};
 }
 
@@ -106,6 +106,43 @@ inline vector2& operator/=(vector2 &v, scalar s) {
     v.x *= z;
     v.y *= z;
     return v;
+}
+
+// Multiply vectors component-wise and assign to the first.
+inline vector2 & operator*=(vector2 &v, const vector2 &w) {
+    v.x *= w.x;
+    v.y *= w.y;
+    return v;
+}
+
+// Check if two vectors are equal.
+inline bool operator==(const vector2 &v, const vector2 &w) {
+    return v.x == w.x && v.y == w.y;
+}
+
+// Check if two vectors are different.
+inline bool operator!=(const vector2 &v, const vector2 &w) {
+    return v.x != w.x || v.y != w.y;
+}
+
+// Check if a vector is bigger than another component-wise.
+inline bool operator>(const vector2 &v, const vector2 &w) {
+    return v.x > w.x && v.y > w.y;
+}
+
+// Check if a vector is smaller than another component-wise.
+inline bool operator<(const vector2 &v, const vector2 &w) {
+    return v.x < w.x && v.y < w.y;
+}
+
+// Check if a vector is greater than or equal to another component-wise.
+inline bool operator>=(const vector2 &v, const vector2 &w) {
+    return v.x >= w.x && v.y >= w.y;
+}
+
+// Check if a vector is less than or equal to another component-wise.
+inline bool operator<=(const vector2 &v, const vector2 &w) {
+    return v.x <= w.x && v.y <= w.y;
 }
 
 // Dot product between vectors.
@@ -149,6 +186,54 @@ inline vector2 normalize(const vector2 &v) {
     auto l = length(v);
     EDYN_ASSERT(l > EDYN_EPSILON);
     return v / l;
+}
+
+// Normalizes vector if it's length is greater than a threshold above zero.
+// Returns where the vector was normalized.
+inline bool try_normalize(vector2 &v) {
+    auto lsqr = length_sqr(v);
+
+    if (lsqr > EDYN_EPSILON) {
+        v /= std::sqrt(lsqr);
+        return true;
+    }
+
+    return false;
+}
+
+// Projects direction vector `v` onto plane with normal `n`.
+inline vector2 project_direction(const vector2 &v, const vector2 &n) {
+    return v - n * dot(v, n);
+}
+
+// Projects point `p` onto plane with origin `q` and normal `n`.
+inline vector2 project_plane(const vector2 &p, const vector2 &q, const vector2 &n) {
+    return p - n * dot(p - q, n);
+}
+
+// Performs element-wise minimum.
+inline vector2 min(const vector2 &v, const vector2 &w) {
+    return {std::min(v.x, w.x), std::min(v.y, w.y)};
+}
+
+// Performs element-wise maximum.
+inline vector2 max(const vector2 &v, const vector2 &w) {
+    return {std::max(v.x, w.x), std::max(v.y, w.y)};
+}
+
+// Performs element-wise absolute.
+inline vector2 abs(const vector2 &v) {
+    return {std::abs(v.x), std::abs(v.y)};
+}
+
+// Returns the index of the coordinate with greatest value.
+inline size_t max_index(const vector2 &v) {
+    return v.x > v.y ? 0 : 1;
+}
+
+// Returns the index of the coordinate with greatest absolute value.
+inline size_t max_index_abs(const vector2 &v) {
+    return max_index(abs(v));
 }
 
 }

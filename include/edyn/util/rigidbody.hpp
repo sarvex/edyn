@@ -4,9 +4,7 @@
 #include <vector>
 #include <optional>
 #include <entt/entity/fwd.hpp>
-#include "edyn/math/vector3.hpp"
-#include "edyn/math/quaternion.hpp"
-#include "edyn/math/matrix3x3.hpp"
+#include "edyn/math/vector2.hpp"
 #include "edyn/shapes/shapes.hpp"
 #include "edyn/comp/material.hpp"
 
@@ -30,23 +28,23 @@ struct rigidbody_def {
     rigidbody_kind kind {rigidbody_kind::rb_dynamic};
 
     // Initial position and orientation.
-    vector3 position {vector3_zero};
-    quaternion orientation {quaternion_identity};
+    vector2 position {vector2_zero};
+    scalar orientation {};
 
     // Mass properties for dynamic entities.
     scalar mass {1};
-    matrix3x3 inertia {matrix3x3_identity};
+    scalar inertia {1};
 
     // Initial linear and angular velocity.
-    vector3 linvel {vector3_zero};
-    vector3 angvel {vector3_zero};
+    vector2 linvel {vector2_zero};
+    scalar angvel {};
 
     // Center of mass offset from origin in object space.
-    std::optional<vector3> center_of_mass;
+    std::optional<vector2> center_of_mass;
 
     // Gravity acceleration. If not set, the default value from
     // `edyn::get_gravity` will be assigned.
-    std::optional<vector3> gravity;
+    std::optional<vector2> gravity;
 
     // Optional shape for collidable entities.
     std::optional<shapes_variant_t> shape;
@@ -113,10 +111,10 @@ std::vector<entt::entity> batch_rigidbodies(entt::registry &registry, const std:
  * `actual_world_space_location - position`.
  */
 void rigidbody_apply_impulse(entt::registry &, entt::entity,
-                             const vector3 &impulse,
-                             const vector3 &rel_location);
+                             const vector2 &impulse,
+                             const vector2 &rel_location);
 
-void update_kinematic_position(entt::registry &, entt::entity, const vector3 &, scalar dt);
+void update_kinematic_position(entt::registry &, entt::entity, const vector2 &, scalar dt);
 void update_kinematic_orientation(entt::registry &, entt::entity, const quaternion &, scalar dt);
 void clear_kinematic_velocities(entt::registry &);
 
@@ -138,7 +136,7 @@ void set_rigidbody_mass(entt::registry &, entt::entity, scalar mass);
  * @param entity Rigid body entity.
  * @param inertia The new moment of inertia.
  */
-void set_rigidbody_inertia(entt::registry &, entt::entity, const matrix3x3 &inertia);
+void set_rigidbody_inertia(entt::registry &, entt::entity, scalar inertia);
 
 /**
  * @brief Besides assigning the new friction coefficient to the rigid body's
@@ -162,9 +160,9 @@ void set_rigidbody_friction(entt::registry &, entt::entity, scalar);
  * @param entity Rigid body entity.
  * @param com Center of mass offset.
  */
-void set_center_of_mass(entt::registry &, entt::entity, const vector3 &com);
+void set_center_of_mass(entt::registry &, entt::entity, const vector2 &com);
 
-void apply_center_of_mass(entt::registry &, entt::entity, const vector3 &com);
+void apply_center_of_mass(entt::registry &, entt::entity, const vector2 &com);
 
 /**
  * @brief Get location of rigid body's origin in world space. The position and
@@ -173,7 +171,7 @@ void apply_center_of_mass(entt::registry &, entt::entity, const vector3 &com);
  * @param entity Rigid body entity.
  * @return Origin location in the world.
  */
-vector3 get_rigidbody_origin(const entt::registry &, entt::entity);
+vector2 get_rigidbody_origin(const entt::registry &, entt::entity);
 
 /**
  * @brief Get interpolated location of rigid body's origin in world space for
@@ -182,7 +180,7 @@ vector3 get_rigidbody_origin(const entt::registry &, entt::entity);
  * @param entity Rigid body entity.
  * @return Origin location in the world for presentation.
  */
-vector3 get_rigidbody_present_origin(const entt::registry &, entt::entity);
+vector2 get_rigidbody_present_origin(const entt::registry &, entt::entity);
 
 }
 

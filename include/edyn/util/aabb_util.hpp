@@ -6,11 +6,10 @@
 
 namespace edyn {
 
-AABB box_aabb(const vector3 &half_extents, const vector3 &pos, const quaternion &orn);
-AABB sphere_aabb(scalar radius, const vector3 &pos);
-AABB sphere_aabb(scalar radius, const vector3 &pos, const quaternion &orn);
-AABB cylinder_aabb(scalar radius, scalar half_length, const vector3 &pos, const quaternion &orn);
-AABB capsule_aabb(scalar radius, scalar half_length, const vector3 &pos, const quaternion &orn);
+AABB box_aabb(const vector2 &half_extents, const vector2 &pos, scalar orn);
+AABB circle_aabb(scalar radius, const vector2 &pos);
+AABB circle_aabb(scalar radius, const vector2 &pos, scalar orn);
+AABB capsule_aabb(scalar radius, scalar half_length, const vector2 &pos, scalar orn);
 
 /**
  * @brief Calculates the AABB of an AABB transformed to world space.
@@ -19,7 +18,7 @@ AABB capsule_aabb(scalar radius, scalar half_length, const vector3 &pos, const q
  * @param orn Orientation of AABB.
  * @return AABB of the given AABB with transformation applied.
  */
-AABB aabb_to_world_space(const AABB &aabb, const vector3 &pos, const quaternion &orn);
+AABB aabb_to_world_space(const AABB &aabb, const vector2 &pos, scalar orn);
 
 /**
  * @brief Calculates the AABB of an AABB transformed into object space.
@@ -28,14 +27,14 @@ AABB aabb_to_world_space(const AABB &aabb, const vector3 &pos, const quaternion 
  * @param orn Orientation of object.
  * @return AABB of the given AABB in the space of another object.
  */
-AABB aabb_to_object_space(const AABB &aabb, const vector3 &pos, const quaternion &orn);
+AABB aabb_to_object_space(const AABB &aabb, const vector2 &pos, scalar orn);
 
 /**
  * @brief Calculates the AABB of a set of points.
  * @param points A point cloud.
  * @return AABB of point set.
  */
-AABB point_cloud_aabb(const std::vector<vector3> &points);
+AABB point_cloud_aabb(const std::vector<vector2> &points);
 
 /**
  * @brief Calculates the AABB of a set of points with a transformation.
@@ -44,19 +43,19 @@ AABB point_cloud_aabb(const std::vector<vector3> &points);
  * @param orn Orientation of point cloud.
  * @return AABB of point set.
  */
-AABB point_cloud_aabb(const std::vector<vector3> &points,
-                      const vector3 &pos, const quaternion &orn);
+AABB point_cloud_aabb(const std::vector<vector2> &points,
+                      const vector2 &pos, scalar orn);
 
 // Calculate AABB for all types of shapes.
-AABB shape_aabb(const plane_shape &sh, const vector3 &pos, const quaternion &orn);
-AABB shape_aabb(const sphere_shape &sh, const vector3 &pos, const quaternion &orn);
-AABB shape_aabb(const cylinder_shape &sh, const vector3 &pos, const quaternion &orn);
-AABB shape_aabb(const capsule_shape &sh, const vector3 &pos, const quaternion &orn);
-AABB shape_aabb(const mesh_shape &sh, const vector3 &pos, const quaternion &orn);
-AABB shape_aabb(const box_shape &sh, const vector3 &pos, const quaternion &orn);
-AABB shape_aabb(const polyhedron_shape &sh, const vector3 &pos, const quaternion &orn);
-AABB shape_aabb(const paged_mesh_shape &sh, const vector3 &pos, const quaternion &orn);
-AABB shape_aabb(const compound_shape &sh, const vector3 &pos, const quaternion &orn);
+AABB shape_aabb(const plane_shape &sh, const vector2 &pos, scalar orn);
+AABB shape_aabb(const sphere_shape &sh, const vector2 &pos, scalar orn);
+AABB shape_aabb(const cylinder_shape &sh, const vector2 &pos, scalar orn);
+AABB shape_aabb(const capsule_shape &sh, const vector2 &pos, scalar orn);
+AABB shape_aabb(const mesh_shape &sh, const vector2 &pos, scalar orn);
+AABB shape_aabb(const box_shape &sh, const vector2 &pos, scalar orn);
+AABB shape_aabb(const polyhedron_shape &sh, const vector2 &pos, scalar orn);
+AABB shape_aabb(const paged_mesh_shape &sh, const vector2 &pos, scalar orn);
+AABB shape_aabb(const compound_shape &sh, const vector2 &pos, scalar orn);
 
 /**
  * @brief Visits the shape variant and calculates the the AABB.
@@ -65,7 +64,7 @@ AABB shape_aabb(const compound_shape &sh, const vector3 &pos, const quaternion &
  * @param orn Shape's orientation.
  * @return The AABB.
  */
-AABB shape_aabb(const shapes_variant_t &var, const vector3 &pos, const quaternion &orn);
+AABB shape_aabb(const shapes_variant_t &var, const vector2 &pos, scalar orn);
 
 }
 

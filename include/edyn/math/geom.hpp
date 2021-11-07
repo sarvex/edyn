@@ -161,8 +161,8 @@ void plane_space(const vector3 &n, vector3 &p, vector3 &q);
  */
 matrix3x3 make_tangent_basis(const vector3 &n);
 
-bool intersect_aabb(const vector3 &min0, const vector3 &max0,
-                    const vector3 &min1, const vector3 &max1);
+bool intersect_aabb(const vector2 &min0, const vector2 &max0,
+                    const vector2 &min1, const vector2 &max1);
 
 size_t intersect_segments(const vector2 &p0, const vector2 &p1,
                           const vector2 &q0, const vector2 &q1,

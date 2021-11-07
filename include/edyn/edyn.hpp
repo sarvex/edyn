@@ -10,10 +10,8 @@
 #include "comp/present_orientation.hpp"
 #include "math/constants.hpp"
 #include "math/scalar.hpp"
-#include "math/vector3.hpp"
 #include "math/vector2.hpp"
-#include "math/quaternion.hpp"
-#include "math/matrix3x3.hpp"
+#include "math/matrix2x2.hpp"
 #include "math/transform.hpp"
 #include "math/math.hpp"
 #include "math/geom.hpp"
@@ -263,7 +261,7 @@ void visit_edges(entt::registry &registry, entt::entity entity, Func func) {
  * @param registry Data source.
  * @return Gravity acceleration vector.
  */
-vector3 get_gravity(const entt::registry &registry);
+vector2 get_gravity(const entt::registry &registry);
 
 /**
  * @brief Changes the default gravity acceleration.
@@ -271,7 +269,7 @@ vector3 get_gravity(const entt::registry &registry);
  * @param registry Data source.
  * @param gravity The new default gravity acceleration.
  */
-void set_gravity(entt::registry &registry, vector3 gravity);
+void set_gravity(entt::registry &registry, vector2 gravity);
 
 /**
  * @brief Get the number of constraint solver velocity iterations.

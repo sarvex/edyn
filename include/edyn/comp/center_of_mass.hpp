@@ -1,16 +1,16 @@
 #ifndef EDYN_COMP_CENTER_OF_MASS_HPP
 #define EDYN_COMP_CENTER_OF_MASS_HPP
 
-#include "edyn/math/vector3.hpp"
+#include "edyn/math/vector2.hpp"
 
 namespace edyn {
 
 /**
  * @brief Center of mass offset from the rigid body's origin in object space.
  */
-struct center_of_mass : public vector3 {
-    center_of_mass & operator=(const vector3 &v) {
-        vector3::operator=(v);
+struct center_of_mass : public vector2 {
+    center_of_mass & operator=(const vector2 &v) {
+        vector2::operator=(v);
         return *this;
     }
 };

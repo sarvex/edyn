@@ -1,7 +1,7 @@
 #ifndef EDYN_COMP_AABB_HPP
 #define EDYN_COMP_AABB_HPP
 
-#include "edyn/math/vector3.hpp"
+#include "edyn/math/vector2.hpp"
 #include "edyn/math/geom.hpp"
 
 namespace edyn {
@@ -10,25 +10,24 @@ namespace edyn {
  * @brief Axis-aligned bounding box.
  */
 struct AABB {
-    vector3 min;
-    vector3 max;
+    vector2 min;
+    vector2 max;
 
-	inline AABB inset(const vector3 &v) const {
+	inline AABB inset(const vector2 &v) const {
 		return {min + v, max - v};
 	}
 
-    inline vector3 center() const {
+    inline vector2 center() const {
         return (min + max) * scalar(0.5);
     }
 
-    // Returns this AABB's surface area. 
-    inline scalar area() const {
-        auto d = max - min;
-        return scalar{2} * (d.x * d.y + d.y * d.z + d.z * d.x);
+    // Returns this AABB's perimer.
+    inline scalar perimeter() const {
+        return (max.x - min.x + max.y - min.y) * scalar(2);
     }
 
     // Returns whether this AABB contains point `p`.
-    bool contains(const vector3 &p) const {
+    bool contains(const vector2 &p) const {
         return min <= p && p <= max;
     }
 

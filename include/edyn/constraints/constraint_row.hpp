@@ -3,7 +3,6 @@
 
 #include <array>
 #include "edyn/math/vector3.hpp"
-#include "edyn/math/matrix3x3.hpp"
 #include "edyn/config/constants.hpp"
 
 namespace edyn {
@@ -36,7 +35,7 @@ struct constraint_row {
 
     // Inverse masses and inertias used during the solver iterations.
     scalar inv_mA, inv_mB;
-    matrix3x3 inv_IA, inv_IB;
+    scalar inv_IA, inv_IB;
 
     // Reference to delta velocities used during solver iterations. It is not
     // safe to dereference these outside of the solver update context.

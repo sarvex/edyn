@@ -161,11 +161,11 @@ void exclude_collision(entt::registry &registry, entity_pair entities) {
     exclude_collision(registry, entities.first, entities.second);
 }
 
-vector3 get_gravity(const entt::registry &registry) {
+vector2 get_gravity(const entt::registry &registry) {
     return registry.ctx<settings>().gravity;
 }
 
-void set_gravity(entt::registry &registry, vector3 gravity) {
+void set_gravity(entt::registry &registry, vector2 gravity) {
     registry.ctx<settings>().gravity = gravity;
 
     auto view = registry.view<edyn::gravity, procedural_tag, rigidbody_tag>();

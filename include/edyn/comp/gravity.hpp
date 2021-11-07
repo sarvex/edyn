@@ -1,13 +1,13 @@
 #ifndef EDYN_COMP_GRAVITY_HPP
 #define EDYN_COMP_GRAVITY_HPP
 
-#include "edyn/math/vector3.hpp"
+#include "edyn/math/vector2.hpp"
 
 namespace edyn {
 
-struct gravity : public vector3 {
-    gravity & operator=(const vector3 &v) {
-        vector3::operator=(v);
+struct gravity : public vector2 {
+    gravity & operator=(const vector2 &v) {
+        vector2::operator=(v);
         return *this;
     }
 };

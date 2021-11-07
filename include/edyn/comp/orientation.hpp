@@ -1,16 +1,11 @@
 #ifndef EDYN_COMP_ORIENTATION_HPP
 #define EDYN_COMP_ORIENTATION_HPP
 
-#include "edyn/math/quaternion.hpp"
+#include "edyn/comp/scalar_comp.hpp"
 
 namespace edyn {
 
-struct orientation : public quaternion {
-    orientation & operator=(const quaternion &q) {
-        quaternion::operator=(q);
-        return *this;
-    }
-};
+struct orientation : public scalar_comp {};
 
 }
 

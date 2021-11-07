@@ -3,7 +3,7 @@
 #include "edyn/comp/origin.hpp"
 #include "edyn/comp/dirty.hpp"
 #include "edyn/math/matrix3x3.hpp"
-#include "edyn/math/vector3.hpp"
+#include "edyn/math/vector2.hpp"
 #include "edyn/util/rigidbody.hpp"
 #include "edyn/comp/tag.hpp"
 #include "edyn/comp/aabb.hpp"
@@ -47,21 +47,17 @@ void make_rigidbody(entt::entity entity, entt::registry &registry, const rigidbo
         registry.emplace<mass>(entity, def.mass);
         registry.emplace<mass_inv>(entity, scalar(1) / def.mass);
         registry.emplace<inertia>(entity, def.inertia);
-
-        auto I_inv = inverse_matrix_symmetric(def.inertia);
-        registry.emplace<inertia_inv>(entity, I_inv);
-        registry.emplace<inertia_world_inv>(entity, I_inv);
+        registry.emplace<inertia_inv>(entity, scalar(1) / def.inertia);
     } else {
         registry.emplace<mass>(entity, EDYN_SCALAR_MAX);
         registry.emplace<mass_inv>(entity, scalar(0));
-        registry.emplace<inertia>(entity, matrix3x3_zero);
-        registry.emplace<inertia_inv>(entity, matrix3x3_zero);
-        registry.emplace<inertia_world_inv>(entity, matrix3x3_zero);
+        registry.emplace<inertia>(entity, scalar(0));
+        registry.emplace<inertia_inv>(entity, scalar(0));
     }
 
     if (def.kind == rigidbody_kind::rb_static) {
-        registry.emplace<linvel>(entity, vector3_zero);
-        registry.emplace<angvel>(entity, vector3_zero);
+        registry.emplace<linvel>(entity, vector2_zero);
+        registry.emplace<angvel>(entity, scalar(0));
     } else {
         registry.emplace<linvel>(entity, def.linvel);
         registry.emplace<angvel>(entity, def.angvel);
@@ -73,7 +69,7 @@ void make_rigidbody(entt::entity entity, entt::registry &registry, const rigidbo
 
     auto gravity = def.gravity ? *def.gravity : get_gravity(registry);
 
-    if (gravity != vector3_zero && def.kind == rigidbody_kind::rb_dynamic) {
+    if (gravity != vector2_zero && def.kind == rigidbody_kind::rb_dynamic) {
         registry.emplace<edyn::gravity>(entity, gravity);
     }
 
@@ -104,12 +100,6 @@ void make_rigidbody(entt::entity entity, entt::registry &registry, const rigidbo
             if (def.kind == rigidbody_kind::rb_dynamic) {
                 if constexpr(has_type<ShapeType, rolling_shapes_tuple_t>::value) {
                     registry.emplace<rolling_tag>(entity);
-
-                    auto roll_dir = shape_rolling_direction<ShapeType>();
-
-                    if (roll_dir != vector3_zero) {
-                        registry.emplace<roll_direction>(entity, roll_dir);
-                    }
                 }
             }
         }, *def.shape);
@@ -183,14 +173,14 @@ std::vector<entt::entity> batch_rigidbodies(entt::registry &registry, const std:
 }
 
 void rigidbody_apply_impulse(entt::registry &registry, entt::entity entity,
-                             const vector3 &impulse, const vector3 &rel_location) {
+                             const vector2 &impulse, const vector2 &rel_location) {
     auto &m_inv = registry.get<mass_inv>(entity);
-    auto &i_inv = registry.get<inertia_world_inv>(entity);
+    auto &i_inv = registry.get<inertia_inv>(entity);
     registry.get<linvel>(entity) += impulse * m_inv;
-    registry.get<angvel>(entity) += i_inv * cross(rel_location, impulse);
+    registry.get<angvel>(entity) += i_inv * perp_product(rel_location, impulse);
 }
 
-void update_kinematic_position(entt::registry &registry, entt::entity entity, const vector3 &pos, scalar dt) {
+void update_kinematic_position(entt::registry &registry, entt::entity entity, const vector2 &pos, scalar dt) {
     EDYN_ASSERT(registry.any_of<kinematic_tag>(entity));
     auto &curpos = registry.get<position>(entity);
     auto &vel = registry.get<linvel>(entity);
@@ -210,8 +200,8 @@ void update_kinematic_orientation(entt::registry &registry, entt::entity entity,
 void clear_kinematic_velocities(entt::registry &registry) {
     auto view = registry.view<kinematic_tag, linvel, angvel>();
     view.each([] (linvel &v, angvel &w) {
-        v = vector3_zero;
-        w = vector3_zero;
+        v = vector2_zero;
+        w = scalar(0);
     });
 }
 
@@ -228,12 +218,11 @@ void set_rigidbody_mass(entt::registry &registry, entt::entity entity, scalar ma
     refresh<edyn::mass, edyn::mass_inv>(registry, entity);
 }
 
-void set_rigidbody_inertia(entt::registry &registry, entt::entity entity, const matrix3x3 &inertia) {
+void set_rigidbody_inertia(entt::registry &registry, entt::entity entity, scalar inertia) {
     EDYN_ASSERT(registry.any_of<dynamic_tag>(entity));
     EDYN_ASSERT(registry.any_of<rigidbody_tag>(entity));
-    auto I_inv = inverse_matrix_symmetric(inertia);
     registry.replace<edyn::inertia>(entity, inertia);
-    registry.replace<edyn::inertia_inv>(entity, I_inv);
+    registry.replace<edyn::inertia_inv>(entity, scalar(1) / inertia);
     refresh<edyn::inertia, edyn::inertia_inv>(registry, entity);
 }
 
@@ -280,17 +269,17 @@ void set_rigidbody_friction(entt::registry &registry, entt::entity entity, scala
     });
 }
 
-void set_center_of_mass(entt::registry &registry, entt::entity entity, const vector3 &com) {
+void set_center_of_mass(entt::registry &registry, entt::entity entity, const vector2 &com) {
     auto &coordinator = registry.ctx<island_coordinator>();
     coordinator.set_center_of_mass(entity, com);
 }
 
-void apply_center_of_mass(entt::registry &registry, entt::entity entity, const vector3 &com) {
+void apply_center_of_mass(entt::registry &registry, entt::entity entity, const vector2 &com) {
     auto body_view = registry.view<position, orientation, linvel, angvel>();
     auto com_view = registry.view<center_of_mass>();
 
     auto [pos, orn, linvel, angvel] = body_view.get<position, orientation, edyn::linvel, edyn::angvel>(entity);
-    auto com_old = vector3_zero;
+    auto com_old = vector2_zero;
     auto has_com = com_view.contains(entity);
 
     if (has_com) {
@@ -306,7 +295,7 @@ void apply_center_of_mass(entt::registry &registry, entt::entity entity, const v
 
     auto &dirty = registry.get_or_emplace<edyn::dirty>(entity);
 
-    if (com != vector3_zero) {
+    if (com != vector2_zero) {
         if (has_com) {
             registry.replace<center_of_mass>(entity, com);
             registry.replace<edyn::origin>(entity, origin);
@@ -333,7 +322,7 @@ void apply_center_of_mass(entt::registry &registry, entt::entity entity, const v
     }
 }
 
-vector3 get_rigidbody_origin(const entt::registry &registry, entt::entity entity) {
+vector2 get_rigidbody_origin(const entt::registry &registry, entt::entity entity) {
     if (!registry.any_of<center_of_mass>(entity)) {
         return registry.get<position>(entity);
     }
@@ -343,7 +332,7 @@ vector3 get_rigidbody_origin(const entt::registry &registry, entt::entity entity
     return origin;
 }
 
-vector3 get_rigidbody_present_origin(const entt::registry &registry, entt::entity entity) {
+vector2 get_rigidbody_present_origin(const entt::registry &registry, entt::entity entity) {
     if (!registry.any_of<center_of_mass>(entity)) {
         return registry.get<present_position>(entity);
     }

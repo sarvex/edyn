@@ -3,7 +3,7 @@
 
 #include <cmath>
 #include <float.h>
-#include "vector3.hpp"
+#include "vector2.hpp"
 
 namespace edyn {
 
@@ -17,17 +17,17 @@ inline constexpr auto large_scalar = scalar(1e18);
 inline constexpr auto small_scalar = scalar(1e-18);
 inline constexpr auto gravitational_constant = scalar(6.674e-11);
 
-inline constexpr vector3 gravity_sun     = vector3_y * scalar(-274);
-inline constexpr vector3 gravity_mercury = vector3_y * scalar(-3.7);
-inline constexpr vector3 gravity_venus   = vector3_y * scalar(-8.87);
-inline constexpr vector3 gravity_earth   = vector3_y * scalar(-9.8);
-inline constexpr vector3 gravity_mars    = vector3_y * scalar(-3.721);
-inline constexpr vector3 gravity_jupiter = vector3_y * scalar(-24.79);
-inline constexpr vector3 gravity_saturn  = vector3_y * scalar(-10.44);
-inline constexpr vector3 gravity_uranus  = vector3_y * scalar(-8.69);
-inline constexpr vector3 gravity_neptune = vector3_y * scalar(-11.15);
-inline constexpr vector3 gravity_pluto   = vector3_y * scalar(-0.62);
-inline constexpr vector3 gravity_moon    = vector3_y * scalar(-1.625);
+inline constexpr vector2 gravity_sun     = vector2_y * scalar(-274);
+inline constexpr vector2 gravity_mercury = vector2_y * scalar(-3.7);
+inline constexpr vector2 gravity_venus   = vector2_y * scalar(-8.87);
+inline constexpr vector2 gravity_earth   = vector2_y * scalar(-9.8);
+inline constexpr vector2 gravity_mars    = vector2_y * scalar(-3.721);
+inline constexpr vector2 gravity_jupiter = vector2_y * scalar(-24.79);
+inline constexpr vector2 gravity_saturn  = vector2_y * scalar(-10.44);
+inline constexpr vector2 gravity_uranus  = vector2_y * scalar(-8.69);
+inline constexpr vector2 gravity_neptune = vector2_y * scalar(-11.15);
+inline constexpr vector2 gravity_pluto   = vector2_y * scalar(-0.62);
+inline constexpr vector2 gravity_moon    = vector2_y * scalar(-1.625);
 
 }
 
