@@ -1,13 +1,16 @@
 #include "edyn/util/constraint_util.hpp"
 #include "edyn/collision/contact_manifold.hpp"
+#include "edyn/collision/contact_manifold_events.hpp"
+#include "edyn/comp/continuous.hpp"
 #include "edyn/comp/material.hpp"
 #include "edyn/comp/tag.hpp"
 #include "edyn/comp/graph_edge.hpp"
 #include "edyn/comp/graph_node.hpp"
 #include "edyn/comp/delta_linvel.hpp"
 #include "edyn/comp/delta_angvel.hpp"
-#include "edyn/constraints/constraint_impulse.hpp"
+#include "edyn/context/settings.hpp"
 #include "edyn/parallel/entity_graph.hpp"
+#include "edyn/parallel/component_index_source.hpp"
 #include "edyn/constraints/constraint_row.hpp"
 #include "edyn/dynamics/material_mixing.hpp"
 
@@ -15,58 +18,56 @@ namespace edyn {
 
 namespace internal {
     bool pre_make_constraint(entt::entity entity, entt::registry &registry,
-                             entt::entity body0, entt::entity body1, bool is_graph_edge) {
+                             entt::entity body0, entt::entity body1) {
         // Multiple constraints of different types can be assigned to the same
         // entity. If this entity already has a graph edge, just do a few
         // consistency checks.
-        if (registry.has<graph_edge>(entity)) {
+        if (registry.any_of<graph_edge>(entity)) {
+        #if defined(EDYN_DEBUG) && !defined(EDYN_DISABLE_ASSERT)
             auto &edge = registry.get<graph_edge>(entity);
             auto [ent0, ent1] = registry.ctx<entity_graph>().edge_node_entities(edge.edge_index);
             EDYN_ASSERT(ent0 == body0 && ent1 == body1);
-            EDYN_ASSERT(registry.has<constraint_impulse>(entity));
-            EDYN_ASSERT(registry.has<procedural_tag>(entity));
+            EDYN_ASSERT(registry.any_of<procedural_tag>(entity));
+        #endif
             return false;
         }
 
-        registry.emplace<constraint_impulse>(entity);
-        auto &con_dirty = registry.get_or_emplace<dirty>(entity);
-        con_dirty.created<constraint_impulse>();
+        auto node_index0 = registry.get<graph_node>(body0).node_index;
+        auto node_index1 = registry.get<graph_node>(body1).node_index;
+        auto edge_index = registry.ctx<entity_graph>().insert_edge(entity, node_index0, node_index1);
+        registry.emplace<procedural_tag>(entity);
+        registry.emplace<graph_edge>(entity, edge_index);
 
-        // If the constraint is not a graph edge (e.g. when it's a `contact_constraint`
-        // in a contact manifold), it means it is handled as a child of another entity
-        // that is a graph edge and thus creating an edge for this would be redundant.
-        if (is_graph_edge) {
-            auto node_index0 = registry.get<graph_node>(body0).node_index;
-            auto node_index1 = registry.get<graph_node>(body1).node_index;
-            auto edge_index = registry.ctx<entity_graph>().insert_edge(entity, node_index0, node_index1);
-            registry.emplace<procedural_tag>(entity);
-            registry.emplace<graph_edge>(entity, edge_index);
-            con_dirty.created<procedural_tag>();
-        }
+        auto &con_dirty = registry.get_or_emplace<dirty>(entity);
+        con_dirty.created<procedural_tag>();
 
         return true;
     }
 }
 
-entt::entity make_contact_manifold(entt::registry &registry, entt::entity body0, entt::entity body1, scalar separation_threshold) {
+entt::entity make_contact_manifold(entt::registry &registry,
+                                   entt::entity body0, entt::entity body1,
+                                   scalar separation_threshold) {
     auto manifold_entity = registry.create();
     make_contact_manifold(manifold_entity, registry, body0, body1, separation_threshold);
     return manifold_entity;
 }
 
-void make_contact_manifold(entt::entity manifold_entity, entt::registry &registry, entt::entity body0, entt::entity body1, scalar separation_threshold) {
+void make_contact_manifold(entt::entity manifold_entity, entt::registry &registry,
+                           entt::entity body0, entt::entity body1,
+                           scalar separation_threshold) {
     EDYN_ASSERT(registry.valid(body0) && registry.valid(body1));
-    registry.emplace<procedural_tag>(manifold_entity);
     registry.emplace<contact_manifold>(manifold_entity, body0, body1, separation_threshold);
+    registry.emplace<contact_manifold_events>(manifold_entity);
 
     auto &dirty = registry.get_or_emplace<edyn::dirty>(manifold_entity);
-    dirty.set_new().created<procedural_tag, contact_manifold>();
+    dirty.set_new().created<contact_manifold, contact_manifold_events>();
 
     auto material_view = registry.view<material>();
 
     if (material_view.contains(body0) && material_view.contains(body1)) {
-        auto &material0 = material_view.get(body0);
-        auto &material1 = material_view.get(body1);
+        auto &material0 = material_view.get<material>(body0);
+        auto &material1 = material_view.get<material>(body1);
 
         auto &material_table = registry.ctx<material_mix_table>();
         auto restitution = scalar(0);
@@ -83,10 +84,32 @@ void make_contact_manifold(entt::entity manifold_entity, entt::registry &registr
         }
     }
 
-    auto node_index0 = registry.get<graph_node>(body0).node_index;
-    auto node_index1 = registry.get<graph_node>(body1).node_index;
-    auto edge_index = registry.ctx<entity_graph>().insert_edge(manifold_entity, node_index0, node_index1);
-    registry.emplace<graph_edge>(manifold_entity, edge_index);
+    if (registry.any_of<continuous_contacts_tag>(body0) ||
+        registry.any_of<continuous_contacts_tag>(body1)) {
+
+        auto &settings = registry.ctx<edyn::settings>();
+        registry.emplace<continuous>(manifold_entity).insert(settings.index_source->index_of<edyn::contact_manifold>());
+        dirty.created<continuous>();
+    }
+
+    // Assign contact constraint to manifold.
+    make_constraint<contact_constraint>(manifold_entity, registry, body0, body1);
+}
+
+void swap_manifold(contact_manifold &manifold) {
+    std::swap(manifold.body[0], manifold.body[1]);
+
+    manifold.each_point([] (contact_point &cp) {
+        std::swap(cp.pivotA, cp.pivotB);
+        std::swap(cp.featureA, cp.featureB);
+        cp.normal *= -1; // Point towards new A.
+
+        if (cp.normal_attachment == contact_normal_attachment::normal_on_A) {
+            cp.normal_attachment = contact_normal_attachment::normal_on_B;
+        } else if (cp.normal_attachment == contact_normal_attachment::normal_on_B) {
+            cp.normal_attachment = contact_normal_attachment::normal_on_A;
+        }
+    });
 }
 
 scalar get_effective_mass(const constraint_row &row) {

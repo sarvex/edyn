@@ -2,11 +2,13 @@
 #define EDYN_SERIALIZATION_STD_S11N_HPP
 
 #include <array>
+#include <limits>
 #include <vector>
 #include <cstdint>
-#include <memory>
 #include <variant>
 #include <string>
+#include <utility>
+#include <optional>
 #include <type_traits>
 #include <entt/core/ident.hpp>
 #include "edyn/util/tuple_util.hpp"
@@ -15,7 +17,8 @@ namespace edyn {
 
 template<typename Archive>
 void serialize(Archive &archive, std::string& str) {
-    auto size = str.size();
+    using size_type = uint16_t;
+    size_type size = std::min(str.size(), static_cast<size_t>(std::numeric_limits<size_type>::max()));
     archive(size);
     str.resize(size);
 
@@ -26,7 +29,8 @@ void serialize(Archive &archive, std::string& str) {
 
 template<typename Archive, typename T>
 void serialize(Archive &archive, std::vector<T> &vector) {
-    auto size = vector.size();
+    using size_type = uint16_t;
+    size_type size = std::min(vector.size(), static_cast<size_t>(std::numeric_limits<size_type>::max()));
     archive(size);
     vector.resize(size);
 
@@ -37,7 +41,8 @@ void serialize(Archive &archive, std::vector<T> &vector) {
 
 template<typename Archive>
 void serialize(Archive &archive, std::vector<bool> &vector) {
-    auto size = vector.size();
+    using size_type = uint16_t;
+    size_type size = std::min(vector.size(), static_cast<size_t>(std::numeric_limits<size_type>::max()));
     archive(size);
     vector.resize(size);
 
@@ -96,33 +101,68 @@ namespace internal {
         var = std::variant<Ts...>{t};
     }
 
-    template<typename Archive, typename... Ts, std::size_t... Indexes>
-    void read_variant(Archive& archive, typename entt::identifier<Ts...>::identifier_type id, std::variant<Ts...>& var, std::index_sequence<Indexes...>)
+    template<typename Archive, typename IDType, typename... Ts, IDType... Indexes>
+    void read_variant(Archive& archive, IDType id, std::variant<Ts...>& var, std::integer_sequence<IDType, Indexes...>)
     {
         ((id == Indexes ? read_variant<std::tuple_element_t<Indexes, std::tuple<Ts...>>>(archive, var) : (void)0), ...);
     }
 
-    template<typename Archive, typename... Ts>
-    void read_variant(Archive& archive, typename entt::identifier<Ts...>::identifier_type id, std::variant<Ts...>& var)
+    template<typename Archive, typename IDType, typename... Ts>
+    void read_variant(Archive& archive, IDType id, std::variant<Ts...>& var)
     {
-        read_variant(archive, id, var, std::make_index_sequence<sizeof...(Ts)>{});
+        read_variant(archive, id, var, std::make_integer_sequence<IDType, sizeof...(Ts)>{});
     }
 }
 
 template<typename Archive, typename... Ts>
 void serialize(Archive& archive, std::variant<Ts...>& var) {
+    using id_type = uint8_t;
+
     if constexpr(Archive::is_input::value) {
-        size_t id;
+        id_type id;
         archive(id);
         internal::read_variant(archive, id, var);
     } else {
         std::visit([&archive] (auto &&t) {
             using T = std::decay_t<decltype(t)>;
-            auto id = index_of_v<size_t, T, Ts...>;
+            auto id = index_of_v<id_type, T, Ts...>;
             archive(id);
             archive(t);
         }, var);
     }
+}
+
+template<typename Archive, typename T, typename U>
+void serialize(Archive &archive, std::pair<T, U> &pair) {
+    archive(pair.first);
+    archive(pair.second);
+}
+
+template<typename Archive, typename T>
+void serialize(Archive &archive, std::optional<T> &opt) {
+    bool has_value = opt.has_value();
+    archive(has_value);
+
+    if constexpr(Archive::is_input::value) {
+        if (has_value) {
+            archive(opt.emplace());
+        } else {
+            opt.reset();
+        }
+    } else {
+        if (has_value) {
+            archive(*opt);
+        }
+    }
+}
+
+template<typename T>
+size_t serialization_sizeof(const std::optional<T> &opt) {
+    if (opt) {
+        return sizeof(bool) + serialization_sizeof(*opt);
+    }
+
+    return sizeof(bool);
 }
 
 }

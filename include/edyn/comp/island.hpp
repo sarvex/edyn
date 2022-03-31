@@ -1,9 +1,9 @@
 #ifndef EDYN_COMP_ISLAND_HPP
 #define EDYN_COMP_ISLAND_HPP
 
-#include "edyn/util/entity_set.hpp"
 #include <entt/entity/fwd.hpp>
 #include <entt/entity/entity.hpp>
+#include <entt/entity/sparse_set.hpp>
 
 namespace edyn {
 
@@ -12,7 +12,8 @@ namespace edyn {
  * usually through constraints.
  */
 struct island {
-
+    entt::sparse_set nodes {};
+    entt::sparse_set edges {};
 };
 
 /**
@@ -36,8 +37,13 @@ struct island_resident {
  * simultaneously.
  */
 struct multi_island_resident {
-    entity_set island_entities;
+    entt::sparse_set island_entities {};
 };
+
+template<typename Archive>
+void serialize(Archive &archive, island_timestamp &timestamp) {
+    archive(timestamp.value);
+}
 
 }
 
