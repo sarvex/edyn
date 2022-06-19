@@ -106,12 +106,13 @@ struct pool_snapshot_data_impl : public pool_snapshot_data {
 
     void insert_all(const entt::registry &registry,
                     const std::vector<entt::entity> &pool_entities) {
-        auto view = registry.view<Component, networked_tag>();
+        auto networked_view = registry.view<networked_tag>();
+        auto view = registry.view<Component>();
 
         for (index_type idx = 0; idx < pool_entities.size(); ++idx) {
             auto entity = pool_entities[idx];
 
-            if (view.contains(entity)) {
+            if (view.contains(entity) && networked_view.contains(entity)) {
                 entity_indices.push_back(idx);
 
                 if constexpr(!is_empty_type) {

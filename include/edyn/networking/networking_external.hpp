@@ -76,12 +76,9 @@ extern void(*g_mark_replaced_network_dirty)(entt::registry &, const registry_ope
  */
 template<typename... Components, typename... Actions>
 void register_networked_components(entt::registry &registry, std::tuple<Actions...> actions = {}) {
-    auto external = std::tuple<Components...>{};
-    auto all = std::tuple_cat(networked_components, external);
-
     if (auto *ctx = registry.ctx().find<client_network_context>()) {
-        ctx->snapshot_importer.reset(new client_snapshot_importer_impl(all));
-        ctx->snapshot_exporter.reset(new client_snapshot_exporter_impl(all, actions));
+        ctx->snapshot_importer.reset(new client_snapshot_importer_ext<Components...>);
+        ctx->snapshot_exporter.reset(new client_snapshot_exporter_ext<Components...>(actions));
 
         auto input = std::tuple_cat(std::conditional_t<std::is_base_of_v<network_input, Components>,
                                     std::tuple<Components>, std::tuple<>>{}...);
@@ -91,10 +88,12 @@ void register_networked_components(entt::registry &registry, std::tuple<Actions.
     }
 
     if (auto *ctx = registry.ctx().find<server_network_context>()) {
-        ctx->snapshot_importer.reset(new server_snapshot_importer_impl(all, actions));
-        ctx->snapshot_exporter.reset(new server_snapshot_exporter_impl(all));
+        ctx->snapshot_importer.reset(new server_snapshot_importer_ext<Components...>(actions));
+        ctx->snapshot_exporter.reset(new server_snapshot_exporter_ext<Components...>);
     }
 
+    auto external = std::tuple<Components...>{};
+    auto all = std::tuple_cat(networked_components, external);
     g_make_pool_snapshot_data = create_make_pool_snapshot_data_function(all);
     g_is_networked_component = internal::make_is_networked_component_func(all);
     g_is_networked_input_component = internal::make_is_network_input_component_func(all);
@@ -108,14 +107,14 @@ void register_networked_components(entt::registry &registry, std::tuple<Actions.
  */
 inline void unregister_networked_components(entt::registry &registry) {
     if (auto *ctx = registry.ctx().find<client_network_context>()) {
-        ctx->snapshot_importer.reset(new client_snapshot_importer_impl(networked_components));
-        ctx->snapshot_exporter.reset(new client_snapshot_exporter_impl(networked_components, {}));
+        ctx->snapshot_importer.reset(new client_snapshot_importer);
+        ctx->snapshot_exporter.reset(new client_snapshot_exporter);
         ctx->input_history = std::make_shared<input_state_history>();
     }
 
     if (auto *ctx = registry.ctx().find<server_network_context>()) {
-        ctx->snapshot_importer.reset(new server_snapshot_importer_impl(networked_components, {}));
-        ctx->snapshot_exporter.reset(new server_snapshot_exporter_impl(networked_components));
+        ctx->snapshot_importer.reset(new server_snapshot_importer);
+        ctx->snapshot_exporter.reset(new server_snapshot_exporter);
     }
 
     g_make_pool_snapshot_data = create_make_pool_snapshot_data_function(networked_components);

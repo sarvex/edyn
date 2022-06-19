@@ -34,7 +34,7 @@ void serialize(Archive &archive, pool_snapshot &pool) {
 }
 
 template<typename... Components>
-auto create_make_pool_snapshot_data_function([[maybe_unused]] std::tuple<Components...>) {
+auto create_make_pool_snapshot_data_function() {
     return [](unsigned component_index) {
         std::tuple<Components...> components;
         auto ptr = std::unique_ptr<pool_snapshot_data>{};

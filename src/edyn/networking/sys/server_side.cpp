@@ -551,7 +551,7 @@ static void dispatch_actions(entt::registry &registry, double time) {
         // Erase processed actions but keep last. Only newer actions are
         // inserted when remote packets arrive so the last entry must be kept
         // in order to have something to compare with (see
-        // `server_snapshot_importer_impl::merge_action_history`).
+        // `server_snapshot_importer::merge_action_history`).
         history.entries.erase(history.entries.begin(), it);
     }
 }
