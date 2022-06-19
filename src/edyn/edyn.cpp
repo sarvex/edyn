@@ -123,7 +123,7 @@ void step_simulation(entt::registry &registry) {
 void remove_external_components(entt::registry &registry) {
     auto &settings = registry.ctx().at<edyn::settings>();
     settings.make_reg_op_builder = &make_reg_op_builder_default;
-    settings.index_source.reset(new component_index_source_impl(shared_components_t{}));
+    settings.index_source.reset(new component_index_source());
     settings.clear_actions_func = nullptr;
     registry.ctx().at<island_coordinator>().settings_changed();
 }

@@ -164,17 +164,12 @@ void register_external_components(entt::registry &registry, std::tuple<Actions..
     auto &settings = registry.ctx().at<edyn::settings>();
 
     settings.make_reg_op_builder = []() {
-        auto external = std::tuple<Components...>{};
-        auto action_lists = std::tuple<action_list<Actions>...>{};
-        auto all_components = std::tuple_cat(shared_components_t{}, external, action_lists);
         return std::unique_ptr<registry_operation_builder>(
-            new registry_operation_builder_impl(all_components));
+            new registry_operation_builder_ext<Components..., action_list<Actions>...>());
     };
 
-    auto external = std::tuple<Components...>{};
-    auto action_lists = std::tuple<action_list<Actions>...>{};
-    auto all_components = std::tuple_cat(shared_components_t{}, external, action_lists);
-    settings.index_source.reset(new component_index_source_impl(all_components));
+    settings.index_source.reset(
+        new component_index_source_ext<Components..., action_list<Actions>...>());
 
     if constexpr(sizeof...(Actions) > 0) {
         settings.clear_actions_func = [](entt::registry &registry) {

@@ -33,31 +33,53 @@ struct component_index_source {
         return std::array<IndexType, sizeof...(Component)>{index_of<Component, IndexType>()...};
     }
 
-    virtual size_t index_of_id(entt::id_type id) const = 0;
+    virtual size_t index_of_id(entt::id_type id) const {
+        auto idx = SIZE_MAX;
+        std::apply([&](auto ... c) {
+            ((entt::type_index<decltype(c)>::value() == id ?
+                (idx = edyn::tuple_type_index_of<size_t, decltype(c), shared_components_t>::value) : (size_t)0), ...);
+        }, shared_components_t{});
+        return idx;
+    }
 
-    virtual entt::id_type type_id_of(size_t index) const = 0;
+    virtual entt::id_type type_id_of(size_t index) const {
+        auto id = std::numeric_limits<entt::id_type>::max();
+
+        if (index < std::tuple_size_v<shared_components_t>) {
+            visit_tuple(shared_components_t{}, index, [&](auto &&c) {
+                id = entt::type_index<std::decay_t<decltype(c)>>::value();
+            });
+        }
+
+        return id;
+    }
 };
 
-template<typename... Component>
-struct component_index_source_impl : public component_index_source {
-    using components_tuple_t = std::tuple<Component...>;
-
-    component_index_source_impl() = default;
-    component_index_source_impl([[maybe_unused]] std::tuple<Component...>) {}
-
+template<typename... Components>
+struct component_index_source_ext : public component_index_source {
     size_t index_of_id(entt::id_type id) const override {
-        auto idx = SIZE_MAX;
-        ((entt::type_index<Component>::value() == id ?
-            (idx = edyn::tuple_type_index_of<size_t, Component, components_tuple_t>::value) : (size_t)0), ...);
+        auto idx = component_index_source::index_of_id(id);
+
+        if (idx == SIZE_MAX) {
+            ((entt::type_index<Components>::value() == id ?
+                (idx = edyn::index_of_v<size_t, Components, Components...>) : (size_t)0), ...);
+
+            if (idx != SIZE_MAX) {
+                constexpr auto num_shared_comp = std::tuple_size_v<shared_components_t>;
+                idx += num_shared_comp;
+            }
+        }
+
         return idx;
     }
 
     entt::id_type type_id_of(size_t index) const override {
-        auto id = std::numeric_limits<entt::id_type>::max();
-        auto tuple = components_tuple_t{};
+        auto id = component_index_source::type_id_of(index);
+        constexpr auto num_shared_comp = std::tuple_size_v<shared_components_t>;
 
-        if (index < std::tuple_size_v<components_tuple_t>) {
-            visit_tuple(tuple, index, [&](auto &&c) {
+        if (id == std::numeric_limits<entt::id_type>::max() &&
+            index < num_shared_comp  + sizeof...(Components)) {
+            visit_tuple(std::tuple<Components...>{}, index - num_shared_comp, [&](auto &&c) {
                 id = entt::type_index<std::decay_t<decltype(c)>>::value();
             });
         }

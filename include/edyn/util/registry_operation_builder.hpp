@@ -4,6 +4,7 @@
 #include <vector>
 #include <memory>
 #include <entt/entity/registry.hpp>
+#include "edyn/comp/shared_comp.hpp"
 #include "edyn/util/registry_operation.hpp"
 
 namespace edyn {
@@ -176,21 +177,77 @@ public:
         insert_components<Component>(view, op, entity);
     }
 
-    virtual void emplace_all(const entt::registry &registry, const std::vector<entt::entity> &entities) = 0;
-    virtual void replace_all(const entt::registry &registry, const std::vector<entt::entity> &entities) = 0;
-    virtual void remove_all(const entt::registry &registry, const std::vector<entt::entity> &entities) = 0;
+    virtual void emplace_all(const entt::registry &registry, const std::vector<entt::entity> &entities) {
+        std::apply([&](auto ... c) {
+            (emplace<decltype(c)>(registry, entities.begin(), entities.end(), true), ...);
+        }, shared_comp);
+    }
 
-    virtual void emplace_all(const entt::registry &registry, const entt::sparse_set &entities) = 0;
-    virtual void replace_all(const entt::registry &registry, const entt::sparse_set &entities) = 0;
-    virtual void remove_all(const entt::registry &registry, const entt::sparse_set &entities) = 0;
+    virtual void replace_all(const entt::registry &registry, const std::vector<entt::entity> &entities) {
+        std::apply([&](auto ... c) {
+            (replace<decltype(c)>(registry, entities.begin(), entities.end(), true), ...);
+        }, shared_comp);
+    }
 
-    virtual void emplace_all(const entt::registry &registry, entt::entity entity) = 0;
-    virtual void replace_all(const entt::registry &registry, entt::entity entity) = 0;
-    virtual void remove_all(const entt::registry &registry, entt::entity entity) = 0;
+    virtual void remove_all(const entt::registry &registry, const std::vector<entt::entity> &entities) {
+        std::apply([&](auto ... c) {
+            (remove<decltype(c)>(registry, entities.begin(), entities.end(), true), ...);
+        }, shared_comp);
+    }
 
-    virtual void emplace_type_id(const entt::registry &registry, entt::entity entity, entt::id_type id) = 0;
-    virtual void replace_type_id(const entt::registry &registry, entt::entity entity, entt::id_type id) = 0;
-    virtual void remove_type_id(const entt::registry &registry, entt::entity entity, entt::id_type id) = 0;
+    virtual void emplace_all(const entt::registry &registry, const entt::sparse_set &entities) {
+        std::apply([&](auto ... c) {
+            (emplace<decltype(c)>(registry, entities.begin(), entities.end(), true), ...);
+        }, shared_comp);
+    }
+
+    virtual void replace_all(const entt::registry &registry, const entt::sparse_set &entities) {
+        std::apply([&](auto ... c) {
+            (replace<decltype(c)>(registry, entities.begin(), entities.end(), true), ...);
+        }, shared_comp);
+    }
+
+    virtual void remove_all(const entt::registry &registry, const entt::sparse_set &entities) {
+        std::apply([&](auto ... c) {
+            (remove<decltype(c)>(registry, entities.begin(), entities.end(), true), ...);
+        }, shared_comp);
+    }
+
+    virtual void emplace_all(const entt::registry &registry, entt::entity entity) {
+        std::apply([&](auto ... c) {
+            ((registry.all_of<decltype(c)>(entity) ? emplace<decltype(c)>(registry, entity) : (void)0), ...);
+        }, shared_comp);
+    }
+
+    virtual void replace_all(const entt::registry &registry, entt::entity entity) {
+        std::apply([&](auto ... c) {
+            ((registry.all_of<decltype(c)>(entity) ? replace<decltype(c)>(registry, entity) : (void)0), ...);
+        }, shared_comp);
+    }
+
+    virtual void remove_all(const entt::registry &registry, entt::entity entity) {
+        std::apply([&](auto ... c) {
+            ((registry.all_of<decltype(c)>(entity) ? remove<decltype(c)>(registry, entity) : (void)0), ...);
+        }, shared_comp);
+    }
+
+    virtual void emplace_type_id(const entt::registry &registry, entt::entity entity, entt::id_type id) {
+        std::apply([&](auto ... c) {
+            ((entt::type_index<decltype(c)>::value() == id ? emplace<decltype(c)>(registry, entity) : (void)0), ...);
+        }, shared_comp);
+    }
+
+    virtual void replace_type_id(const entt::registry &registry, entt::entity entity, entt::id_type id) {
+        std::apply([&](auto ... c) {
+            ((entt::type_index<decltype(c)>::value() == id ? replace<decltype(c)>(registry, entity) : (void)0), ...);
+        }, shared_comp);
+    }
+
+    virtual void remove_type_id(const entt::registry &registry, entt::entity entity, entt::id_type id) {
+        std::apply([&](auto ... c) {
+            ((entt::type_index<decltype(c)>::value() == id ? remove<decltype(c)>(registry, entity) : (void)0), ...);
+        }, shared_comp);
+    }
 
     template<typename It>
     void emplace_type_ids(const entt::registry &registry, entt::entity entity, It first, It last) {
@@ -236,59 +293,69 @@ public:
 
 private:
     std::vector<registry_operation> operations;
+    const shared_components_t shared_comp{};
 };
 
 template<typename... Components>
-class registry_operation_builder_impl : public registry_operation_builder {
+class registry_operation_builder_ext : public registry_operation_builder {
 public:
-    registry_operation_builder_impl() = default;
-    registry_operation_builder_impl([[maybe_unused]] std::tuple<Components...>) {}
-
     void emplace_all(const entt::registry &registry, const std::vector<entt::entity> &entities) override {
+        registry_operation_builder::emplace_all(registry, entities);
         (emplace<Components>(registry, entities.begin(), entities.end(), true), ...);
     }
 
     void replace_all(const entt::registry &registry, const std::vector<entt::entity> &entities) override {
+        registry_operation_builder::replace_all(registry, entities);
         (replace<Components>(registry, entities.begin(), entities.end(), true), ...);
     }
 
     void remove_all(const entt::registry &registry, const std::vector<entt::entity> &entities) override {
+        registry_operation_builder::remove_all(registry, entities);
         (remove<Components>(registry, entities.begin(), entities.end(), true), ...);
     }
 
     void emplace_all(const entt::registry &registry, const entt::sparse_set &entities) override {
+        registry_operation_builder::emplace_all(registry, entities);
         (emplace<Components>(registry, entities.begin(), entities.end(), true), ...);
     }
 
     void replace_all(const entt::registry &registry, const entt::sparse_set &entities) override {
+        registry_operation_builder::replace_all(registry, entities);
         (replace<Components>(registry, entities.begin(), entities.end(), true), ...);
     }
 
     void remove_all(const entt::registry &registry, const entt::sparse_set &entities) override {
+        registry_operation_builder::remove_all(registry, entities);
         (remove<Components>(registry, entities.begin(), entities.end(), true), ...);
     }
 
     void emplace_all(const entt::registry &registry, entt::entity entity) override {
+        registry_operation_builder::emplace_all(registry, entity);
         ((registry.all_of<Components>(entity) ? emplace<Components>(registry, entity) : (void)0), ...);
     }
 
     void replace_all(const entt::registry &registry, entt::entity entity) override {
+        registry_operation_builder::replace_all(registry, entity);
         ((registry.all_of<Components>(entity) ? replace<Components>(registry, entity) : (void)0), ...);
     }
 
     void remove_all(const entt::registry &registry, entt::entity entity) override {
+        registry_operation_builder::remove_all(registry, entity);
         ((registry.all_of<Components>(entity) ? remove<Components>(registry, entity) : (void)0), ...);
     }
 
     void emplace_type_id(const entt::registry &registry, entt::entity entity, entt::id_type id) override {
+        registry_operation_builder::emplace_type_id(registry, entity, id);
         ((entt::type_index<Components>::value() == id ? emplace<Components>(registry, entity) : (void)0), ...);
     }
 
     void replace_type_id(const entt::registry &registry, entt::entity entity, entt::id_type id) override {
+        registry_operation_builder::replace_type_id(registry, entity, id);
         ((entt::type_index<Components>::value() == id ? replace<Components>(registry, entity) : (void)0), ...);
     }
 
     void remove_type_id(const entt::registry &registry, entt::entity entity, entt::id_type id) override {
+        registry_operation_builder::remove_type_id(registry, entity, id);
         ((entt::type_index<Components>::value() == id ? remove<Components>(registry, entity) : (void)0), ...);
     }
 };
