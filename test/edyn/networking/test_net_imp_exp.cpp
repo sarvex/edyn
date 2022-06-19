@@ -52,7 +52,7 @@ TEST(networking_test, client_export_import) {
         emap.insert(remote_entity, local_entity);
     }
 
-    auto importer = edyn::client_snapshot_importer();
+    auto importer = edyn::client_snapshot_importer_ext<comp>();
     importer.import(reg1, emap, snap);
 
     ASSERT_TRUE((reg1.all_of<comp>(emap.at(ent0))));
